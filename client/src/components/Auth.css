@@ -1,0 +1,350 @@
+.auth-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+}
+
+.auth-card {
+  background: #1e1e2e;
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid #2d3748;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-header h1 {
+  color: #e0e0e0;
+  font-size: 2rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.auth-header p {
+  color: #a0aec0;
+  font-size: 1rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #cbd5e0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  padding: 14px;
+  background: #2d3748;
+  border: 2px solid #4a5568;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #e0e0e0;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #718096;
+  background: #374151;
+  box-shadow: 0 0 0 3px rgba(113, 128, 150, 0.1);
+}
+
+.form-group input::placeholder {
+  color: #718096;
+}
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 12px 20px;
+  background: #2d3748;
+  border: 2px solid #4a5568;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.radio-option:hover {
+  border-color: #718096;
+  background: #374151;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: #3182ce;
+}
+
+.radio-option span {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: #3182ce;
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+  border-color: #3182ce;
+  background: rgba(49, 130, 206, 0.1);
+}
+
+.auth-button {
+  padding: 14px;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  color: #e0e0e0;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.auth-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #5a6678 0%, #3d4758 100%);
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.forgot-password-link {
+  background: none;
+  border: none;
+  color: #3182ce;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: right;
+  padding: 0;
+  margin-top: -10px;
+  transition: color 0.3s ease;
+}
+
+.forgot-password-link:hover {
+  color: #4299e1;
+  text-decoration: underline;
+}
+
+.auth-footer {
+  margin-top: 30px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #4a5568;
+}
+
+.auth-footer p {
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-credit {
+  color: #cbd5e0;
+  font-style: italic;
+  font-size: 0.95rem;
+  opacity: 0.85;
+  text-align: center;
+  margin-top: auto;
+  padding: 12px 0 8px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #3182ce;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+  transition: color 0.3s ease;
+}
+
+.link-button:hover {
+  color: #4299e1;
+  text-decoration: underline;
+}
+
+.error-message {
+  background: rgba(229, 62, 62, 0.1);
+  border: 1px solid #e53e3e;
+  color: #fc8181;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.success-message {
+  background: rgba(56, 161, 105, 0.1);
+  border: 1px solid #38a169;
+  color: #68d391;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.senha-temporaria-box {
+  background: rgba(49, 130, 206, 0.1);
+  border: 2px solid #3182ce;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.senha-temporaria-box h3 {
+  color: #3182ce;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.senha-temporaria-box p {
+  color: #cbd5e0;
+  margin: 10px 0;
+  font-size: 0.9rem;
+}
+
+.token-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.token-code {
+  background: #1e1e2e;
+  color: #e0e0e0;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  word-break: break-all;
+  border: 2px solid #4a5568;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+}
+
+.copy-button {
+  background: #3182ce;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s ease;
+}
+
+.copy-button:hover {
+  background: #4299e1;
+}
+
+.reset-link-button {
+  display: inline-block;
+  background: #3182ce;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.3s ease;
+}
+
+.reset-link-button:hover {
+  background: #4299e1;
+}
+
+.senha-temporaria-box a {
+  color: #4299e1;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.senha-temporaria-box a:hover {
+  color: #63b3ed;
+}
+
+.senha-note {
+  color: #d69e2e !important;
+  font-size: 0.85rem !important;
+  margin-top: 15px !important;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 30px 20px;
+  }
+
+  .auth-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .radio-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .token-code {
+    font-size: 0.8rem;
+  }
+}
+

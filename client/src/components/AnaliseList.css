@@ -1,0 +1,194 @@
+.analise-list {
+  margin-top: 20px;
+}
+
+.list-header {
+  background: #1e1e2e;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2d3748;
+}
+
+.list-header h2 {
+  color: #e0e0e0;
+  font-size: 1.5rem;
+}
+
+.analise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.analise-card {
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #2d3748;
+}
+
+.analise-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  border-color: #4a5568;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #4a5568;
+}
+
+.card-header h3 {
+  color: #e0e0e0;
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-envio {
+  background: #d69e2e;
+  color: #fff;
+}
+
+.status-resultado {
+  background: #3182ce;
+  color: white;
+}
+
+.status-finalizado {
+  background: #38a169;
+  color: white;
+}
+
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.info-value {
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  text-align: right;
+  flex: 1;
+  margin-left: 10px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #4a5568;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 1rem;
+  color: #e0e0e0;
+  font-weight: 600;
+}
+
+.observacoes {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #4a5568;
+}
+
+.observacoes-label {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.observacoes p {
+  color: #cbd5e0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #4a5568;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.empty-state {
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2d3748;
+}
+
+.empty-state p {
+  color: #a0aec0;
+  font-size: 1.1rem;
+  margin: 10px 0;
+}
+
+@media (max-width: 768px) {
+  .analise-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
