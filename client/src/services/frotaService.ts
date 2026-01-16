@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { FrotaStatus, FrotaCreate, FrotaLogCreate } from '../types';
 
-const API_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'development' ? '/api' : 'http://localhost:3001/api');
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:3001/api');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -38,9 +38,16 @@ export const frotaService = {
   async importLogs(file: File): Promise<{ imported: number; errors: any[] }> {
     const form = new FormData();
     form.append('file', file);
-    const response = await api.post('/frotas/import-logs', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // Para upload, usar URL completa (proxy Vite não funciona bem com multipart)
+    const uploadUrl = import.meta.env.DEV 
+      ? 'http://localhost:3001/api/frotas/import-logs'
+      : '/api/frotas/import-logs';
+    console.log('📤 Enviando para:', uploadUrl);
+    const response = await axios.post<{ imported: number; errors: any[] }>(
+      uploadUrl,
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
     return response.data;
   },
 

@@ -12,16 +12,18 @@ router.get('/', async (req, res) => {
     const frotas = await frotaOperations.listWithStatus();
     res.json(frotas);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Erro ao listar frotas na rota:', error);
+    res.status(500).json({ 
+      error: error.message || 'Erro desconhecido ao listar frotas',
+      details: error.stack
+    });
   }
 });
 
 // Exportar progresso das frotas em Excel
 router.get('/export/excel', async (req, res) => {
   try {
-    console.log('📊 [EXPORT EXCEL] Iniciando exportação...');
     const frotas = await frotaOperations.listWithStatus();
-    console.log(`📊 [EXPORT EXCEL] Total de frotas: ${frotas.length}`);
     
     // Preparar dados para exportação
     const dados = frotas.map((frota) => ({
@@ -64,12 +66,9 @@ router.get('/export/excel', async (req, res) => {
 
     // Gerar arquivo
     const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
-    console.log(`📊 [EXPORT EXCEL] Arquivo gerado com ${buffer.length} bytes`);
-    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="progresso-frotas-${new Date().toISOString().slice(0, 10)}.xlsx"`);
     res.send(buffer);
-    console.log('✅ [EXPORT EXCEL] Exportação concluída com sucesso');
   } catch (error: any) {
     console.error('❌ [EXPORT EXCEL] Erro:', error.message);
     res.status(500).json({ error: error.message });
@@ -79,9 +78,7 @@ router.get('/export/excel', async (req, res) => {
 // Exportar progresso das frotas em CSV
 router.get('/export/csv', async (req, res) => {
   try {
-    console.log('📄 [EXPORT CSV] Iniciando exportação...');
     const frotas = await frotaOperations.listWithStatus();
-    console.log(`📄 [EXPORT CSV] Total de frotas: ${frotas.length}`);
     
     // Preparar dados para exportação
     const dados = frotas.map((frota) => ({
@@ -100,15 +97,11 @@ router.get('/export/csv', async (req, res) => {
       'Data Criação': frota.createdAt?.slice(0, 10) || '-',
     }));
 
-    // Converter para CSV
-    const ws = xlsx.utils.json_to_sheet(dados);
-    const csv = xlsx.utils.sheet_to_csv(ws);
-    console.log(`📄 [EXPORT CSV] Arquivo gerado com ${csv.length} caracteres`);
-    
+    // Gerar CSV
+    const csv = dados.map(row => Object.values(row).map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')).join('\n');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="progresso-frotas-${new Date().toISOString().slice(0, 10)}.csv"`);
     res.send('\uFEFF' + csv); // BOM para UTF-8
-    console.log('✅ [EXPORT CSV] Exportação concluída com sucesso');
   } catch (error: any) {
     console.error('❌ [EXPORT CSV] Erro:', error.message);
     res.status(500).json({ error: error.message });
@@ -252,12 +245,18 @@ router.post('/:id/reset-rodagem', async (req, res) => {
 });
 
 // Importar logs de rodagem em massa
-router.post('/import-logs', upload.single('file'), async (req, res) => {
+router.post('/import-logs', async (req, res) => {
+  console.log('\n\n🔥 ====== ROTA /api/frotas/import-logs ACIONADA ======');
+  console.log('✓ Request chegou no servidor');
+  console.log('✓ Arquivo recebido:', req.file ? req.file.originalname : 'NENHUM');
+  
   try {
     if (!req.file) {
+      console.log('❌ Nenhum arquivo foi enviado');
       return res.status(400).json({ error: 'Arquivo não enviado' });
     }
 
+    console.log('📥 [IMPORT LOGS FROTAS] Arquivo recebido:', req.file.originalname);
     const filename = req.file.originalname || '';
     const buffer = req.file.buffer;
     let rows: any[] = [];
@@ -284,16 +283,22 @@ router.post('/import-logs', upload.single('file'), async (req, res) => {
       }
     }
 
+    console.log('📥 [IMPORT LOGS FROTAS] Linhas a importar:', rows.length);
+    console.log('📥 [IMPORT LOGS FROTAS] Colunas:', Object.keys(rows[0] || {}));
+
     const results = await frotaImportOperations.importLogs(rows);
-    console.log(`✅ IMPORTAÇÃO LOGS - ${results.imported} registros importados, ${results.errors.length} erros`);
+    
+    console.log('📥 [IMPORT LOGS FROTAS] Resultado:', results);
     res.json(results);
   } catch (error: any) {
+    console.error('❌ [IMPORT LOGS FROTAS] Erro:', error.message);
     res.status(500).json({ error: error.message });
   }
+  console.log('🔥 ====== FIM DA ROTA /api/frotas/import-logs ======\n\n');
 });
 
 // Importar frotas em massa
-router.post('/import-frotas', upload.single('file'), async (req, res) => {
+router.post('/import-frotas', async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Arquivo não enviado' });
@@ -314,19 +319,13 @@ router.post('/import-frotas', upload.single('file'), async (req, res) => {
       if (lines.length === 0) {
         return res.status(400).json({ error: 'Arquivo vazio' });
       }
-      console.log('🔍 DEBUG - Primeira linha RAW:', JSON.stringify(lines[0]));
-      console.log('🔍 DEBUG - Segunda linha RAW:', JSON.stringify(lines[1]));
       const header = lines[0].split(/\t|,|;/).map((h) => h.trim().toLowerCase());
-      console.log('🔍 DEBUG - Cabeçalho lido:', header);
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(/\t|,|;/).map((c) => c.trim());
         const obj: any = {};
         header.forEach((h, idx) => {
           obj[h] = cols[idx] ?? '';
         });
-        if (i === 1) {
-          console.log('🔍 DEBUG - Primeira linha de dados:', obj);
-        }
         rows.push(obj);
       }
     }
@@ -349,19 +348,13 @@ router.post('/import-frotas', upload.single('file'), async (req, res) => {
         const intervaloRaw = row.intervalo || row.intervalodetroca || '';
         const intervaloTroca = intervaloRaw ? parseFloat(intervaloRaw.toString().replace(/\./g, '').replace(',', '.')) : 1;
         
-        console.log(`🔍 DEBUG - Frota ${nome}: intervaloRaw="${intervaloRaw}", intervaloTroca=${intervaloTroca}`);
-        
         // Mapear km/horas para unidade (agora em minúsculas)
         let unidadeRaw = row.unidade || row['kmhoras'] || row['km/horas'] || row['kmhoras'] || 'km';
         unidadeRaw = unidadeRaw.toString().toLowerCase().trim();
         
-        console.log(`🔍 DEBUG - Frota ${nome}: unidadeRaw="${unidadeRaw}"`);
-        
         // Verificar se é hora/horas (aceita várias variações)
         const isHora = unidadeRaw === 'hora' || unidadeRaw === 'horas' || unidadeRaw === 'h' || unidadeRaw.includes('hora');
         const unidadeFinal = isHora ? 'hora' : 'km';
-        
-        console.log(`🔍 DEBUG - Frota ${nome}: unidadeFinal="${unidadeFinal}"`);
         
         // KM Inicial é opcional, padrão 0
         const kmInicial = parseFloat(row.kminicial || row.horasiniciais || '0');
@@ -379,8 +372,7 @@ router.post('/import-frotas', upload.single('file'), async (req, res) => {
 
         // Marca como existente para evitar checar novamente no mesmo arquivo
         nomesExistentes.add(nomeNormalizado);
-
-        await frotaOperations.create({
+ frotaOperations.create({
           nome: nome.toString().trim(),
           modelo: modelo.toString().trim(),
           classe: classe.toString().trim(),
@@ -398,6 +390,31 @@ router.post('/import-frotas', upload.single('file'), async (req, res) => {
     res.json({ imported: imported.length, errors });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ ENDPOINT DE DEBUG - Testar conexão com banco
+router.get('/debug/health', async (req, res) => {
+  try {
+    console.log('🔍 [DEBUG] Testando saúde do banco de dados...');
+    
+    // Tentar listar frotas
+    const frotas = await frotaOperations.listWithStatus();
+    
+    res.json({ 
+      status: 'ok',
+      message: 'Banco de dados está funcionando',
+      frotasCount: frotas.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ [DEBUG] Erro na saúde do banco:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message,
+      error: error.stack,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 

@@ -16,6 +16,91 @@
   font-size: 1.5rem;
 }
 
+.table-container {
+  overflow-x: auto;
+  background: #1e1e2e;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2d3748;
+}
+
+.analise-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.analise-table thead {
+  background: #2d3748;
+  border-bottom: 2px solid #4a5568;
+}
+
+.analise-table th {
+  padding: 16px;
+  text-align: left;
+  color: #e0e0e0;
+  font-weight: 600;
+  user-select: none;
+}
+
+.analise-table th.sortable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.analise-table th.sortable:hover {
+  background-color: #3d4758;
+}
+
+.analise-table tbody tr {
+  border-bottom: 1px solid #2d3748;
+  transition: background-color 0.2s ease;
+}
+
+.analise-table tbody tr:hover {
+  background-color: #252d3d;
+}
+
+.analise-table td {
+  padding: 14px 16px;
+  color: #c8c8c8;
+  vertical-align: middle;
+}
+
+.analise-table .status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.analise-table .status-envio {
+  background-color: #e6d546;
+  color: #1a1a1a;
+}
+
+.analise-table .status-resultado {
+  background-color: #5b9dd9;
+  color: #fff;
+}
+
+.analise-table .status-finalizado {
+  background-color: #52c77a;
+  color: #fff;
+}
+
+.analise-table .actions-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.analise-table .btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
 .analise-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));

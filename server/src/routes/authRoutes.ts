@@ -13,8 +13,6 @@ router.post('/register', async (req, res) => {
   try {
     const { nomeCompleto, email, whatsapp, senha } = req.body;
 
-    console.log('Tentativa de registro:', { nomeCompleto, email, whatsapp, senhaLength: senha?.length });
-
     if (!nomeCompleto || !email || !whatsapp || !senha) {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }

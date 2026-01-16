@@ -312,13 +312,18 @@ const Dashboard: React.FC = () => {
         return;
       }
       
-      await motorService.addLog(motor.id!, {
+      const logData = {
         data: newMotorLog.data,
         horasRodado: Number(newMotorLog.horasRodado),
-      });
+      };
+      console.log('📤 [CLIENT] Enviando para motor:', motor.id, 'Dados:', logData);
+      
+      await motorService.addLog(motor.id!, logData);
       await loadMotores();
       setNewMotorLog((prev) => ({ ...prev, horasRodado: '', numeroMotor: '' }));
     } catch (error: any) {
+      console.error('❌ Erro ao registrar horas:', error);
+      console.error('Response:', error.response?.data);
       alert(error.response?.data?.error || 'Erro ao registrar horas do motor');
     }
   };
@@ -857,7 +862,7 @@ const Dashboard: React.FC = () => {
                   >
                     <option value="">Selecione</option>
                     <option value="CAM. APOIO">CAM. APOIO</option>
-                    <option value="CAM. MECANICO">CAM. MECANICO</option>
+                    <option value="CAV. MECANICO">CAV. MECANICO</option>
                     <option value="CAM. TRANSBORDO">CAM. TRANSBORDO</option>
                     <option value="CAV. SCANIA">CAV. SCANIA</option>
                     <option value="COLHEDORA">COLHEDORA</option>
@@ -1928,13 +1933,21 @@ const Dashboard: React.FC = () => {
       <footer className="App-footer">
         Desenvolvido por Pedro Lucas - 2025
         <p>
-  <a 
-    href="https://www.linkedin.com/in/ordeep" 
-    style={{ color: 'white', textDecoration: 'none' }}
-  >
-    linkedin.com/in/ordeep
-  </a>
-</p>  
+          <a 
+            href="https://www.linkedin.com/in/ordeep" 
+            style={{ color: 'white', textDecoration: 'none' }}
+          >
+            linkedin.com/in/ordeep
+          </a>
+        </p>
+        <p>
+          <a 
+            href="https://github.com/Ordeeeep" 
+            style={{ color: 'white', textDecoration: 'none' }}
+          >
+            github.com/Ordep
+          </a>
+        </p>
       </footer>
     </div>
   );

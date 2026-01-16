@@ -3,8 +3,16 @@ import multer from 'multer';
 import xlsx from 'xlsx';
 import { motorOperations, motorImportOperations } from '../database';
 
+console.log('[MOTOR ROUTES] Arquivo sendo carregado...');
+
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// ✅ Middleware que loga TODAS as requisições para motores
+router.use((req, res, next) => {
+  console.log(`[MOTOR ROUTER] ${req.method} ${req.path}`);
+  next();
+});
 
 // Listar motores com status de acompanhamento
 router.get('/', async (req, res) => {
@@ -64,12 +72,9 @@ router.get('/export/excel', async (req, res) => {
 
     // Gerar arquivo
     const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
-    console.log(`📊 [EXPORT EXCEL MOTORES] Arquivo gerado com ${buffer.length} bytes`);
-    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="progresso-motores-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="motores-${new Date().toISOString().slice(0, 10)}.xlsx"`);
     res.send(buffer);
-    console.log('✅ [EXPORT EXCEL MOTORES] Exportação concluída com sucesso');
   } catch (error: any) {
     console.error('❌ [EXPORT EXCEL MOTORES] Erro:', error.message);
     res.status(500).json({ error: error.message });
@@ -151,29 +156,9 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Registrar horas de funcionamento diário
-router.post('/:id/logs', async (req, res) => {
-  try {
-    const { data, horasRodado } = req.body;
-    if (!horasRodado || Number(horasRodado) <= 0) {
-      return res.status(400).json({ error: 'horasRodado deve ser > 0' });
-    }
-
-    await motorOperations.addLog(req.params.id, {
-      data: data || new Date().toISOString().split('T')[0],
-      horasRodado: Number(horasRodado),
-    });
-
-    const motores = await motorOperations.listWithStatus();
-    const atualizado = motores.find((m) => m.id === req.params.id);
-    res.json(atualizado);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
+// ✅ ROTAS /import/* DEVEM VIR ANTES DE /:id/*
 // Importar motores de arquivo
-router.post('/import/file', upload.single('file'), async (req, res) => {
+router.post('/import/file', async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Nenhum arquivo foi enviado' });
@@ -188,11 +173,6 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
     console.log('📋 [IMPORT MOTORES] Colunas encontradas:', Object.keys(dados[0] || {}));
 
     const resultado = await motorImportOperations.importMotores(dados);
-    
-    console.log(`✅ [IMPORT MOTORES] Resultado: ${resultado.imported} importados, ${resultado.errors.length} erros`);
-    if (resultado.errors.length > 0) {
-      console.log('❌ [IMPORT MOTORES] Erros:', JSON.stringify(resultado.errors.slice(0, 3), null, 2));
-    }
 
     res.json(resultado);
   } catch (error: any) {
@@ -202,20 +182,66 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
 });
 
 // Importar horas de arquivo
-router.post('/import/logs', upload.single('file'), async (req, res) => {
+router.post('/import/logs', async (req, res) => {
+  console.log('\n\n🚨🚨🚨 ROTA /import/logs ACIONADA!!! 🚨🚨🚨');
+  console.log('File:', req.file ? req.file.originalname : 'NENHUM');
+  console.log('\n\n🔥 ====== ROTA /api/motores/import/logs ACIONADA ======');
+  console.log('✓ Request chegou no servidor');
+  console.log('✓ Arquivo recebido:', req.file ? req.file.originalname : 'NENHUM');
+  
   try {
     if (!req.file) {
+      console.log('❌ Nenhum arquivo foi enviado');
       return res.status(400).json({ error: 'Nenhum arquivo foi enviado' });
     }
 
+    console.log('📥 [IMPORT LOGS MOTORES] Arquivo recebido:', req.file.originalname);
     const workbook = xlsx.read(req.file.buffer);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const dados = xlsx.utils.sheet_to_json(sheet);
 
+    console.log('📥 [IMPORT LOGS MOTORES] Linhas a importar:', dados.length);
+    console.log('📥 [IMPORT LOGS MOTORES] Colunas:', Object.keys(dados[0] || {}));
+
     const resultado = await motorImportOperations.importLogs(dados);
+    
+    console.log('📥 [IMPORT LOGS MOTORES] Resultado:', resultado);
     res.json(resultado);
   } catch (error: any) {
     console.error('❌ [IMPORT LOGS MOTORES] Erro:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+  console.log('🔥 ====== FIM DA ROTA /api/motores/import/logs ======\n\n');
+});
+
+// Registrar horas de funcionamento diário
+router.post('/:id/logs', async (req, res) => {
+  try {
+    console.log(`\n📝 [ADICIONAR HORAS MOTOR] ID: ${req.params.id}`);
+    console.log(`   Content-Type: ${req.headers['content-type']}`);
+    console.log(`   Body completo:`, JSON.stringify(req.body));
+    console.log(`   Chaves do body:`, Object.keys(req.body));
+    
+    const { data, horasRodado } = req.body;
+    console.log(`   data="${data}", horasRodado="${horasRodado}"`);
+    
+    if (!horasRodado || Number(horasRodado) <= 0) {
+      console.log(`   ❌ Validação falhou: horasRodado inválido`);
+      return res.status(400).json({ error: 'horasRodado deve ser > 0' });
+    }
+
+    console.log(`   ✅ Adicionando log...`);
+    await motorOperations.addLog(req.params.id, {
+      data: data || new Date().toISOString().split('T')[0],
+      horasRodado: Number(horasRodado),
+    });
+
+    console.log(`   ✅ Log adicionado com sucesso`);
+    const motores = await motorOperations.listWithStatus();
+    const atualizado = motores.find((m) => m.id === req.params.id);
+    res.json(atualizado);
+  } catch (error: any) {
+    console.error(`   ❌ ERRO:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });

@@ -101,6 +101,32 @@ export interface FrotaStatus extends Frota {
 }
 
 export const initDatabase = () => {
+  console.log('🔧 Inicializando banco de dados...');
+  
+  // Verificar integridade do banco
+  db.serialize(() => {
+    db.all("SELECT name FROM sqlite_master WHERE type='table'", [], (err, tables) => {
+      if (err) {
+        console.error('❌ Erro ao verificar tabelas:', err);
+        return;
+      }
+      
+      const tableNames = (tables || []).map((t: any) => t.name);
+      console.log(`✅ Tabelas existentes: ${tableNames.join(', ') || 'nenhuma'}`);
+      
+      // Verificar se a tabela frotas está vazia ou corrompida
+      if (tableNames.includes('frotas')) {
+        db.get("PRAGMA table_info(frotas)", [], (err, info) => {
+          if (err) {
+            console.error('❌ Erro ao verificar schema frotas:', err);
+          } else {
+            console.log('✅ Tabela frotas válida');
+          }
+        });
+      }
+    });
+  });
+  
   const queries = [
     `
       CREATE TABLE IF NOT EXISTS analises_oleo (
@@ -172,7 +198,7 @@ export const initDatabase = () => {
   queries.forEach((q) => {
     db.run(q, (err) => {
       if (err) {
-        console.error('Erro ao criar tabela:', err);
+        console.error('❌ Erro ao criar tabela:', err);
       }
     });
   });
@@ -181,11 +207,7 @@ export const initDatabase = () => {
   const safeAlter = (sql: string, tableName: string) => {
     db.run(sql, (err) => {
       if (err && !`${err.message}`.includes('duplicate column')) {
-        console.warn(`⚠️ Aviso ao ajustar tabela ${tableName}:`, err.message);
-      } else if (!err) {
-        console.log(`✅ Coluna adicionada em ${tableName}`);
-      } else {
-        console.log(`ℹ️ Coluna já existe em ${tableName}`);
+        console.warn(`⚠️ Erro ao ajustar tabela ${tableName}:`, err.message);
       }
     });
   };
@@ -194,27 +216,9 @@ export const initDatabase = () => {
   safeAlter("ALTER TABLE frotas ADD COLUMN status_analise TEXT DEFAULT 'NORMAL';", "frotas");
   safeAlter("ALTER TABLE frotas ADD COLUMN data_ultima_analise TEXT;", "frotas");
   safeAlter("ALTER TABLE motores ADD COLUMN data_intervencao TEXT;", "motores");
-  
-  console.log('🔧 Verificando estrutura da tabela motores...');
-  db.all("PRAGMA table_info(motores)", [], (err, columns: any) => {
-    if (err) {
-      console.error('❌ Erro ao verificar estrutura:', err);
-    } else {
-      console.log('📋 Colunas da tabela motores:', columns.map((c: any) => c.name).join(', '));
-      const hasDataIntervencao = columns.some((c: any) => c.name === 'data_intervencao');
-      if (hasDataIntervencao) {
-        console.log('✅ Coluna data_intervencao existe!');
-      } else {
-        console.log('❌ Coluna data_intervencao NÃO existe!');
-      }
-    }
-  });
-  
+
   // Inicializar tabelas de autenticação
   initAuthDatabase();
-
-  console.log('✅ Banco de dados inicializado');
-  console.log(`📂 Arquivo do banco: ${dbPath}`);
 };
 
 export const dbOperations = {
@@ -378,38 +382,62 @@ export const frotaOperations = {
       ORDER BY f.created_at DESC
     `;
 
-    const rows: any[] = await dbAll(query);
-    return rows.map((row) => {
-      const kmAcumulado = Number(row.km_acumulado) || 0;
-      const statusAnalise = row.status_analise || 'NORMAL';
+    try {
+      const rows: any[] = await dbAll(query);
       
-      // Calcular intervalo ajustado baseado no status da análise
-      let fatorAjuste = 1.0; // NORMAL = 100%
-      if (statusAnalise === 'ANORMAL') fatorAjuste = 0.5; // 50%
-      if (statusAnalise === 'CRITICO') fatorAjuste = 0.25; // 25%
-      
-      const intervaloAjustado = Math.round(row.intervalo_troca * fatorAjuste);
-      const progresso = Math.min(100, Math.round((kmAcumulado / intervaloAjustado) * 100));
-      const kmRestante = Math.max(0, intervaloAjustado - kmAcumulado);
-      
-      return {
-        id: row.id,
-        nome: row.nome,
-        modelo: row.modelo || 'N/A',
-        classe: row.classe || 'N/A',
-        intervaloTroca: row.intervalo_troca,
-        unidade: row.unidade || 'km',
-        kmInicial: row.km_inicial,
-        statusAnalise,
-        dataUltimaAnalise: row.data_ultima_analise,
-        createdAt: row.created_at,
-        kmAcumulado,
-        progresso,
-        kmRestante,
-        proximoLimite: row.km_inicial + intervaloAjustado,
-        intervaloAjustado,
-      } as FrotaStatus;
-    });
+      if (!rows || rows.length === 0) {
+        console.log('⚠️  Nenhuma frota encontrada no banco de dados');
+        return [];
+      }
+
+      return rows.map((row) => {
+        try {
+          const kmAcumulado = Number(row.km_acumulado) || 0;
+          const kmInicial = Number(row.km_inicial) || 0;
+          const intervaloTroca = Number(row.intervalo_troca) || 1;
+          const statusAnalise = row.status_analise || 'NORMAL';
+          
+          // Total de km = inicial + acumulado
+          const totalKm = kmInicial + kmAcumulado;
+          
+          // Calcular intervalo ajustado baseado no status da análise (para alertas)
+          let fatorAjuste = 1.0; // NORMAL = 100%
+          if (statusAnalise === 'ANORMAL') fatorAjuste = 0.5; // 50%
+          if (statusAnalise === 'CRITICO') fatorAjuste = 0.25; // 25%
+          
+          const intervaloAjustado = Math.round(intervaloTroca * fatorAjuste);
+          
+          // Progresso baseado no total de km vs intervalo original
+          const progresso = Math.min(100, Math.round((totalKm / (kmInicial + intervaloTroca)) * 100));
+          const proximoLimite = kmInicial + intervaloAjustado;
+          const kmRestante = Math.max(0, proximoLimite - totalKm);
+          
+          return {
+            id: row.id,
+            nome: row.nome,
+            modelo: row.modelo || 'N/A',
+            classe: row.classe || 'N/A',
+            intervaloTroca,
+            unidade: row.unidade || 'km',
+            kmInicial,
+            statusAnalise,
+            dataUltimaAnalise: row.data_ultima_analise,
+            createdAt: row.created_at,
+            kmAcumulado,
+            progresso,
+            kmRestante,
+            proximoLimite,
+            intervaloAjustado,
+          } as FrotaStatus;
+        } catch (mapError) {
+          console.error('❌ Erro ao mapear frota:', row, mapError);
+          throw new Error(`Erro ao processar frota ID ${row?.id}: ${mapError}`);
+        }
+      });
+    } catch (error: any) {
+      console.error('❌ Erro em listWithStatus():', error.message);
+      throw new Error(`Erro ao listar frotas: ${error.message}`);
+    }
   },
 
   async update(id: string, frota: Partial<Frota>): Promise<boolean> {
@@ -532,17 +560,21 @@ export const frotaImportOperations = {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const frotaIdentifier = row.frota || row.Frota || row['FROTA'] || row.numero || row.nome;
-      const kmRodado = row['km/hr'] || row['km/hora'] || row['KM/HR'] || row.kmhr || row.kmrodado || row['km rodado'];
-      const data = row.data || row.Data || row['DATA'] || row.dia;
+      // Procura pelas novas colunas: pinacao, data, rodado
+      const frotaIdentifier = row.pinacao || row.Pinacao || row['PINACAO'] || row.frota || row.Frota || row['FROTA'] || row.numero || row.nome;
+      // Tenta variações: rodado, km/hr, etc
+      let kmRodado = row.rodado || row.Rodado || row['RODADO'] || row['km/hr'] || row['km/hora'] || row['KM/HR'] || row.kmhr || row.kmrodado || row['km rodado'] || row['Km/hr'] || row['Km Rodado'] || row['kmRodado'];
+      const data = row.data || row.Data || row['DATA'] || row.dia || row['Data'];
+
+      // Remover espaços em branco
+      kmRodado = String(kmRodado).trim();
 
       if (!frotaIdentifier || !kmRodado || !data) {
         results.errors.push({
           row: i + 1,
-          error: 'Campos obrigatórios ausentes: frota, km/hr, data',
+          error: `Campos ausentes ou vazios`,
           data: row,
         });
-        console.log(`❌ Linha ${i + 1}: Campos ausentes`);
         continue;
       }
 
@@ -560,6 +592,16 @@ export const frotaImportOperations = {
           continue;
         }
 
+        const kmNum = Number(kmRodado);
+        if (isNaN(kmNum) || kmNum <= 0) {
+          results.errors.push({
+            row: i + 1,
+            error: `KM inválido: "${kmRodado}" (deve ser > 0)`,
+            data: row,
+          });
+          continue;
+        }
+
         // Converter data do formato DD/MM/YYYY para YYYY-MM-DD
         let dataFormatada = data;
         if (typeof data === 'string' && data.includes('/')) {
@@ -570,12 +612,13 @@ export const frotaImportOperations = {
         await frotaOperations.addLog({
           frotaId: frota.id,
           data: dataFormatada,
-          kmRodado: Number(kmRodado),
+          kmRodado: kmNum,
         });
 
         results.imported += 1;
+        console.log(`✅ FROTA IMPORTADA: ${frotaStr} - ${dataFormatada} - ${kmNum}km`);
       } catch (error: any) {
-        console.log(`❌ Linha ${i + 1}: Erro: ${error.message}`);
+        console.error(`❌ ERRO FROTA: ${error.message}`);
         results.errors.push({
           row: i + 1,
           error: error.message || String(error),
@@ -584,6 +627,7 @@ export const frotaImportOperations = {
       }
     }
 
+    console.log(`📊 IMPORTAÇÃO FROTAS: ${results.imported} importados, ${results.errors.length} erros`);
     return results;
   },
 };
@@ -782,8 +826,6 @@ export const motorOperations = {
   async listWithStatus(): Promise<MotorStatus[]> {
     const motores = await dbAll<any>('SELECT * FROM motores ORDER BY numero_motor ASC');
     
-    console.log(`📦 [listWithStatus] Total de motores no banco: ${motores.length}`);
-    
     const resultado = await Promise.all(
       motores.map(async (motorData) => {
         // Mapear snake_case para camelCase
@@ -806,20 +848,11 @@ export const motorOperations = {
           [motor.id]
         );
 
-        console.log(`  📊 Motor ${motor.numeroMotor}: ${logs.length} logs encontrados`);
-        if (logs.length > 0) {
-          console.log(`    Logs:`, JSON.stringify(logs, null, 2));
-        }
-
         const horasAcumuladas = logs.reduce((sum, log) => sum + log.horas_rodado, 0);
         const totalHoras = motor.horasInicial + horasAcumuladas;
         const progresso = (totalHoras / motor.vidaMotor) * 100;
         const horasRestantes = Math.max(0, motor.vidaMotor - totalHoras);
         const proximaManutencao = motor.horasInicial + motor.vidaMotor;
-
-        if (logs.length > 0 || motor.horasInicial > 0) {
-          console.log(`📊 [STATUS] Motor ${motor.numeroMotor}: ${totalHoras} horas (${motor.horasInicial} inicial + ${horasAcumuladas} acumuladas) / ${motor.vidaMotor} (${progresso.toFixed(1)}%)`);
-        }
 
         return {
           ...motor,
@@ -1019,10 +1052,22 @@ export const motorImportOperations = {
     const results = { imported: 0, errors: [] as any[] };
 
     for (const row of dados) {
-      const { numeroMotor, data, horasRodado } = row;
+      // Tentar diferentes variações de nome de coluna
+      let horasRodado = row.rodado || row.Rodado || row['RODADO'] || row.horasRodado || row['horasRodado'] || row['horas rodado'] || row['Horas Rodado'] || row['HORAS RODADO'] || row['Horas'] || row['horas'];
+      const numeroMotor = row.pinacao || row.Pinacao || row['PINACAO'] || row.numeroMotor || row['numeroMotor'] || row['numero motor'] || row['Numero Motor'] || row['Número Motor'];
+      const data = row.data || row['data'] || row['Data'];
+
+      // Remover espaços em branco
+      horasRodado = String(horasRodado).trim();
 
       if (!numeroMotor || !data || !horasRodado) {
-        results.errors.push({ row, erro: 'Campos obrigatórios ausentes' });
+        results.errors.push({ row, erro: 'Campos ausentes ou vazios' });
+        continue;
+      }
+
+      const horas = Number(horasRodado);
+      if (isNaN(horas) || horas <= 0) {
+        results.errors.push({ row, erro: 'horasRodado deve ser > 0' });
         continue;
       }
 
@@ -1052,14 +1097,17 @@ export const motorImportOperations = {
 
         await motorOperations.addLog(motor.id!, {
           data: String(data).trim(),
-          horasRodado: Number(horasRodado),
+          horasRodado: horas,
         });
         results.imported++;
+        console.log(`✅ MOTOR IMPORTADO: ${numeroMotor} - ${data} - ${horas}h`);
       } catch (err: any) {
-        results.errors.push({ row, erro: err.message });
+        console.error(`❌ ERRO MOTOR: ${err.message}`);
+        results.errors.push({ row, erro: err.message || String(err) });
       }
     }
 
+    console.log(`📊 IMPORTAÇÃO MOTORES: ${results.imported} importados, ${results.errors.length} erros`);
     return results;
   },
 };

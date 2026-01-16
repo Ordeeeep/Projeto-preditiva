@@ -1,5 +1,5 @@
 Param(
-    [string]$Destination = "C:\Users\lpedr\OneDrive\Desktop\app exe"
+    [string]$Destination = "C:\Users\lpedr\OneDrive\Desktop\app"
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,14 +9,14 @@ $iconSource = Join-Path $repoRoot "assets/app-icon.png"
 $iconDir = Join-Path $repoRoot "assets"
 $iconIco = Join-Path $iconDir "app-icon.ico"
 
-# Garantir ícones
+# Garantir ícones (opcional)
 New-Item -ItemType Directory -Force -Path $iconDir | Out-Null
-if (-not (Test-Path $iconSource)) { throw "Icone PNG nao encontrado em $iconSource" }
-
-Write-Host "==> Gerando .ico a partir do PNG..." -ForegroundColor Cyan
-$genIco = "const mod=require('png-to-ico'); const pngToIco=mod.default||mod; const fs=require('fs'); pngToIco(['$iconSource']).then(buf=>fs.writeFileSync('$iconIco',buf)).catch(err=>{console.error(err); process.exit(1);});"
-node -e "$genIco"
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path $iconIco)) { throw "Falha ao gerar .ico" }
+if ((Test-Path $iconSource) -and (Test-Path $iconIco)) {
+    Write-Host "==> Ícone encontrado, será utilizado..." -ForegroundColor Cyan
+} else {
+    Write-Host "==> Aviso: Ícone PNG/ICO não encontrado. O .exe usará ícone padrão." -ForegroundColor Yellow
+    $iconIco = $null
+}
 
 Write-Host "==> Iniciando build do frontend (client)..." -ForegroundColor Cyan
 Push-Location "$PSScriptRoot\..\client"
@@ -75,11 +75,17 @@ Write-Host "==> Empacotando .exe com pkg..." -ForegroundColor Cyan
 npx pkg dist/bootstrap.js --targets node18-win-x64 --output "$Destination\sistema.exe"
 Pop-Location
 
-# Aplicar ícone ao executável
-Write-Host "==> Aplicando ícone ao executável..." -ForegroundColor Cyan
-$nodeScript = "const rcedit=require('rcedit'); rcedit(process.argv[2], { icon: process.argv[3] }).catch(err => { console.error(err); process.exit(1); });"
-node -e "$nodeScript" -- "$Destination\sistema.exe" "$iconIco"
-if ($LASTEXITCODE -ne 0) { throw "Falha ao aplicar ícone via rcedit" }
+# Aplicar ícone ao executável (se disponível)
+if ($iconIco -and (Test-Path $iconIco)) {
+    Write-Host "==> Aplicando ícone ao executável..." -ForegroundColor Cyan
+    $nodeScript = "const rcedit=require('rcedit'); rcedit(process.argv[2], { icon: process.argv[3] }).catch(err => { console.error(err); process.exit(1); });"
+    node -e "$nodeScript" -- "$Destination\sistema.exe" "$iconIco"
+    if ($LASTEXITCODE -ne 0) { 
+        Write-Warning "Falha ao aplicar ícone, continuando com ícone padrão..."
+    }
+} else {
+    Write-Host "==> Pulando aplicação de ícone (arquivo não encontrado)..." -ForegroundColor Yellow
+}
 
 # Copiar pasta public (estáticos) para junto do exe
 Write-Host "==> Copiando arquivos estáticos (public)..." -ForegroundColor Cyan

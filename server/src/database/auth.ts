@@ -71,8 +71,6 @@ export const initAuthDatabase = () => {
       if (err) console.error('Erro ao criar tabela de auth:', err);
     });
   });
-  
-  console.log('✅ Tabelas de autenticação SQLite inicializadas');
 };
 
 export const authOperations = {

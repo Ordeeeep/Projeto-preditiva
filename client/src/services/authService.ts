@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 // Usar proxy se disponível, senão usar URL completa
-// Tenta usar proxy primeiro, se falhar usa URL direta
-const API_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'development' ? '/api' : 'http://localhost:3001/api');
+// Em desenvolvimento (Vite), usa /api que é roteado para localhost:3001
+// Em produção, usa URL completa
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:3001/api');
 
 const api = axios.create({
   baseURL: API_URL,
