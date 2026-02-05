@@ -72,6 +72,7 @@ const Dashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [searchTermEdit, setSearchTermEdit] = useState<string>('');
   const [filterProximity, setFilterProximity] = useState<'todos' | 'proximos' | 'atrasados'>('todos');
+  const [filterStatus, setFilterStatus] = useState<'todos' | 'NORMAL' | 'ANORMAL' | 'CRITICO'>('todos');
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [sortFieldAcomp, setSortFieldAcomp] = useState<'nome' | 'modelo' | 'classe' | 'intervaloTroca' | 'kmAcumulado' | 'progresso' | 'proximoLimite' | null>(null);
   const [sortDirectionAcomp, setSortDirectionAcomp] = useState<'asc' | 'desc'>('asc');
@@ -1008,6 +1009,30 @@ const Dashboard: React.FC = () => {
                 >
                   🔴 Atrasados (≥100%)
                 </button>
+                <button 
+                  className={`btn btn-filter ${filterStatus === 'todos' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('todos')}
+                >
+                  Todos Status
+                </button>
+                <button 
+                  className={`btn btn-filter ${filterStatus === 'NORMAL' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('NORMAL')}
+                >
+                  🟢 Normal
+                </button>
+                <button 
+                  className={`btn btn-filter ${filterStatus === 'ANORMAL' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('ANORMAL')}
+                >
+                  🟡 Anormal
+                </button>
+                <button 
+                  className={`btn btn-filter ${filterStatus === 'CRITICO' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('CRITICO')}
+                >
+                  🔴 Crítico
+                </button>
                 <div className="items-per-page">
                   <label>Mostrar:</label>
                   <select
@@ -1083,10 +1108,17 @@ const Dashboard: React.FC = () => {
                           
                           // Filtro de proximidade
                           if (filterProximity === 'proximos') {
-                            return frota.progresso >= 80 && frota.progresso < 100;
+                            if (!(frota.progresso >= 80 && frota.progresso < 100)) return false;
                           } else if (filterProximity === 'atrasados') {
-                            return frota.progresso >= 100;
+                            if (!(frota.progresso >= 100)) return false;
                           }
+                          
+                          // Filtro de status
+                          if (filterStatus !== 'todos') {
+                            const status = frota.statusAnalise || 'NORMAL';
+                            if (status !== filterStatus) return false;
+                          }
+                          
                           return true;
                         })
                         .sort((a, b) => {
