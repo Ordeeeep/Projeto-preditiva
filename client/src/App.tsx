@@ -260,7 +260,7 @@ const Dashboard: React.FC = () => {
       setFrotas(data);
     } catch (error) {
       console.error('Erro ao carregar frotas:', error);
-      alert('Erro ao carregar frotas.');
+      alert('Erro ao carregar frotas...');
     } finally {
       setLoadingFrotas(false);
     }
